@@ -82,14 +82,14 @@ project *is* rather than how it should be compiled:
 
 
 ## Run Project
-1. **Visual Studio** — open `Build/NasaApod.slnx`, then Rebuild and Run (F5).
-2. **Command line**, from the repository root:
+1. **Run executable file**, in `Build/NasaApod.exe`, which runs on a Windows x64 machine with no
+   .NET installed.
+2. **Visual Studio** — open `Build/NasaApod.slnx`, then Rebuild and Run (F5).
+3. **Command line**, from the repository root:
    ```powershell
    dotnet build Build/NasaApod.csproj
    dotnet run --project Build/NasaApod.csproj
    ```
-3. **Run executable file**, in `Build/NasaApod.exe`, which runs on a Windows x64 machine with no
-   .NET installed. Remember to copy `ApodApiConfig.json` next to it.
 
 ### How to use this program?
 
