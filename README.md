@@ -55,21 +55,21 @@ src/                                       # -- SOURCE -- C# files
 ```
 
 ## Environment
-+------------------+---------------------------------------+
-| Item             | Version                               |
-|------------------+---------------------------------------|
-| OS               | Windows 11                            |
-| .NET SDK         | 10.0.302                              |
-| .NET Runtime     | Microsoft.WindowsDesktop.App 10.0.10  |
-| Target Framework | net10.0-windows                       |
-| Language         | C# 14                                 |
-| NuGet packages   | none — framework only                 | 
-+------------------+---------------------------------------+
+
+| Item               | Version                                 |
+|--------------------|-----------------------------------------|
+| `OS`               | `Windows 11`                            |
+| `.NET SDK`         | `10.0.302`                              |
+| `.NET Runtime`     | `Microsoft.WindowsDesktop.App 10.0.10`  |
+| `Target Framework` | `net10.0-windows`                       |
+| `Language`         | `C# 14`                                 |
+| `NuGet packages`   | `none — framework only`                 | 
+
 
 `Build/Common.props` holds the settings, so the project file itself stays about what the
 project *is* rather than how it should be compiled:
 
-+-----------------------------+----------------------+-----------------------------------------------------------------+
+
 | Setting                     | Value                | Detail                                                          |
 |-----------------------------|----------------------|-----------------------------------------------------------------|
 | `Nullable`                  | `enable`             | Warn when a value that may be null is used unchecked            |
@@ -79,7 +79,7 @@ project *is* rather than how it should be compiled:
 | `EnforceCodeStyleInBuild`   | `true`               | Report style violations at build time, not only in the editor   |
 | `TreatWarningsAsErrors`     | `true`               | Fail the build on any warning, so none can be left behind       |
 | `EnableDefaultCompileItems` | `false`              | Do not auto-discover files; they are listed in the project      |
-+-----------------------------+----------------------+-----------------------------------------------------------------+
+
 
 ## Run Project
 1. **Visual Studio** — open `Build/NasaApod.slnx`, then Rebuild and Run (F5).
