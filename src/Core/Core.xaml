@@ -1,0 +1,468 @@
+<Application x:Class="NasaApodApp.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vw="clr-namespace:NasaApodApp.Views">
+  <Application.Resources>
+    <ResourceDictionary>
+
+      <vw:TrueToVisibleConverter x:Key="TrueToVisible" />
+      <vw:FalseToVisibleConverter x:Key="FalseToVisible" />
+
+      <!-- A dark shell keeps the pictures, not the window, as the brightest thing on screen. -->
+      <SolidColorBrush x:Key="PageBackground" Color="#0B0E14" />
+      <SolidColorBrush x:Key="PanelBackground" Color="#151A23" />
+      <SolidColorBrush x:Key="PanelBorder" Color="#2A3140" />
+      <SolidColorBrush x:Key="PrimaryText" Color="#E8ECF3" />
+      <SolidColorBrush x:Key="MutedText" Color="#8A94A6" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#4C8DFF" />
+      <SolidColorBrush x:Key="ErrorText" Color="#FF7A7A" />
+
+      <!-- Text colour is set once on the window root and inherited from there, rather than
+           through an implicit TextBlock style. An implicit style also reaches the TextBlock
+           inside a ComboBox item, which would paint pale text onto the drop-down and make the
+           year and month lists unreadable. Inheritance lets ComboBoxItem override it instead. -->
+
+      <Style x:Key="MutedLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource MutedText}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+      </Style>
+
+      <!-- How long the hover highlight takes to arrive and to leave. Leaving is slower than
+           arriving: a highlight that vanishes the instant the pointer moves reads as a glitch,
+           while one that lingers slightly reads as the surface settling back. -->
+      <Duration x:Key="HoverFadeIn">0:0:0.15</Duration>
+      <Duration x:Key="HoverFadeOut">0:0:0.25</Duration>
+
+      <Style TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource PanelBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Grid>
+                <Border x:Name="Shell"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6" />
+
+                <!-- The highlight is a separate layer faded in and out, rather than a colour
+                     swapped on the surface below. Brushes that come from a shared resource are
+                     frozen and cannot be animated at all; a layer's opacity always can. -->
+                <Border x:Name="HoverGlow"
+                        Background="#1AFFFFFF"
+                        BorderBrush="{StaticResource AccentBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Opacity="0"
+                        IsHitTestVisible="False" />
+
+                <ContentPresenter HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Margin="{TemplateBinding Padding}" />
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Trigger.EnterActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="{StaticResource HoverFadeIn}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.EnterActions>
+                  <Trigger.ExitActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="{StaticResource HoverFadeOut}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.ExitActions>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter Property="Opacity" Value="0.35" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Style>
+
+      <!-- The one control that takes something away rather than fetching it. Oxblood keeps it
+           clearly apart from the blue actions without shouting like a warning colour. -->
+      <SolidColorBrush x:Key="DismissBrush" Color="#7E2233" />
+
+      <Style x:Key="DismissButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource DismissBrush}" />
+        <Setter Property="BorderBrush" Value="#962A3E" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Style>
+
+      <!-- Small enough to sit over a picture without competing with it, still large enough to
+           read at a glance. -->
+      <Style x:Key="OverlayButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Padding" Value="9,4" />
+      </Style>
+
+      <Style x:Key="OverlayDismissButton" TargetType="Button" BasedOn="{StaticResource DismissButton}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Padding" Value="9,4" />
+      </Style>
+
+      <!-- The stock ComboBox draws a white drop-down from the Windows theme, which no amount
+           of Background setting reliably overrides. Templating both the box and its items is
+           what actually makes the list readable on a dark shell. -->
+      <Style TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+        <Setter Property="Background" Value="#1B2230" />
+        <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinWidth" Value="120" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ComboBox">
+              <Border x:Name="Chrome"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <!-- Faded in on hover. Kept as its own layer for the same reason as the
+                       button: a shared brush is frozen and cannot be animated. Declared first
+                       so it sits under the text rather than over it. -->
+                  <Border x:Name="HoverGlow" Grid.Column="0" Grid.ColumnSpan="2"
+                          Background="#14FFFFFF"
+                          CornerRadius="5"
+                          Opacity="0"
+                          IsHitTestVisible="False" />
+
+                  <ContentPresenter Grid.Column="0"
+                                    Margin="{TemplateBinding Padding}"
+                                    Content="{TemplateBinding SelectionBoxItem}"
+                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Left"
+                                    IsHitTestVisible="False" />
+
+                  <!-- Stands in while nothing is chosen, so an empty picker reads as "not
+                       filled in yet" rather than as a blank box. -->
+                  <TextBlock Grid.Column="0" x:Name="Placeholder"
+                             Text="Select ..."
+                             Foreground="{StaticResource MutedText}"
+                             FontStyle="Italic"
+                             Margin="{TemplateBinding Padding}"
+                             VerticalAlignment="Center"
+                             HorizontalAlignment="Left"
+                             Visibility="Collapsed"
+                             IsHitTestVisible="False" />
+
+                  <Path Grid.Column="1" x:Name="Arrow"
+                        Data="M 0 0 L 4.5 4.5 L 9 0"
+                        Stroke="{StaticResource MutedText}"
+                        StrokeThickness="1.6"
+                        VerticalAlignment="Center"
+                        Margin="6,2,12,0" />
+
+                  <!-- Laid over both columns and declared last so it takes the clicks. -->
+                  <ToggleButton Grid.Column="0" Grid.ColumnSpan="2"
+                                Focusable="False" ClickMode="Press"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                    <ToggleButton.Template>
+                      <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" />
+                      </ControlTemplate>
+                    </ToggleButton.Template>
+                  </ToggleButton>
+
+                  <Popup x:Name="PART_Popup"
+                         Placement="Bottom"
+                         IsOpen="{TemplateBinding IsDropDownOpen}"
+                         AllowsTransparency="True"
+                         PopupAnimation="Slide"
+                         Focusable="False">
+                    <Border Background="#1B2230"
+                            BorderBrush="{StaticResource PanelBorder}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Margin="0,4,0,0"
+                            MinWidth="{TemplateBinding ActualWidth}"
+                            MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                      <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsPresenter />
+                      </ScrollViewer>
+                    </Border>
+                  </Popup>
+                </Grid>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="SelectedItem" Value="{x:Null}">
+                  <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                </Trigger>
+                <!-- Hovering lifts the surface rather than recolouring the border, so a
+                     picker flagged red for being empty stays red while the mouse is over it. -->
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Trigger.EnterActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="{StaticResource HoverFadeIn}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.EnterActions>
+                  <Trigger.ExitActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="{StaticResource HoverFadeOut}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.ExitActions>
+                </Trigger>
+                <Trigger Property="IsDropDownOpen" Value="True">
+                  <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter Property="Opacity" Value="0.4" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- Scroll bars.
+           The stock Windows bar brings its own light grey chrome and a wide track, which sits
+           on a dark panel like a piece of another program. This is the same idea reduced to
+           what it has to be: a rounded grip on an unpainted track, with small arrows at the
+           ends, all in the palette already used everywhere else. -->
+      <SolidColorBrush x:Key="ScrollGripBrush" Color="#5A6374" />
+      <SolidColorBrush x:Key="ScrollGripHoverBrush" Color="#8A94A6" />
+
+      <!-- The page-up and page-down areas either side of the grip. They must stay clickable,
+           so they are transparent rather than absent: a control with no background at all
+           receives no clicks. -->
+      <Style x:Key="ScrollPageArea" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="RepeatButton">
+              <Border Background="Transparent" />
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <Style x:Key="ScrollArrow" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="RepeatButton">
+              <Border Background="Transparent">
+                <Path x:Name="Arrow"
+                      Data="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                      Fill="{StaticResource ScrollGripBrush}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Arrow" Property="Fill" Value="{StaticResource ScrollGripHoverBrush}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <Style x:Key="ScrollGrip" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Thumb">
+              <Grid>
+                <Border Background="{StaticResource ScrollGripBrush}" CornerRadius="3" Margin="2" />
+                <!-- Brightened on hover through the same faded layer used by every other
+                     control, so the grip answers the pointer the way buttons do. -->
+                <Border x:Name="HoverGlow"
+                        Background="{StaticResource ScrollGripHoverBrush}"
+                        CornerRadius="3" Margin="2" Opacity="0" />
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Trigger.EnterActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="{StaticResource HoverFadeIn}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.EnterActions>
+                  <Trigger.ExitActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="{StaticResource HoverFadeOut}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.ExitActions>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ScrollBar">
+              <Grid x:Name="Bar" Background="Transparent">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="14" />
+                  <RowDefinition Height="*" />
+                  <RowDefinition Height="14" />
+                </Grid.RowDefinitions>
+
+                <RepeatButton Grid.Row="0"
+                              Style="{StaticResource ScrollArrow}"
+                              Command="ScrollBar.LineUpCommand"
+                              Content="M 0,4 L 4,0 L 8,4 Z" />
+
+                <!-- IsDirectionReversed: dragging the grip down must scroll the content down,
+                     which is the opposite of how the track's value naturally runs. -->
+                <Track Grid.Row="1" x:Name="PART_Track" IsDirectionReversed="True">
+                  <Track.DecreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource ScrollPageArea}" Command="ScrollBar.PageUpCommand" />
+                  </Track.DecreaseRepeatButton>
+                  <Track.Thumb>
+                    <Thumb Style="{StaticResource ScrollGrip}" />
+                  </Track.Thumb>
+                  <Track.IncreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource ScrollPageArea}" Command="ScrollBar.PageDownCommand" />
+                  </Track.IncreaseRepeatButton>
+                </Track>
+
+                <RepeatButton Grid.Row="2"
+                              Style="{StaticResource ScrollArrow}"
+                              Command="ScrollBar.LineDownCommand"
+                              Content="M 0,0 L 8,0 L 4,4 Z" />
+              </Grid>
+
+              <ControlTemplate.Triggers>
+                <!-- The same template laid on its side, so a horizontal bar does not fall back
+                     to the Windows one and break the look in one place. -->
+                <Trigger Property="Orientation" Value="Horizontal">
+                  <Setter TargetName="Bar" Property="LayoutTransform">
+                    <Setter.Value>
+                      <RotateTransform Angle="-90" />
+                    </Setter.Value>
+                  </Setter>
+                  <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+          <Trigger Property="Orientation" Value="Horizontal">
+            <Setter Property="Width" Value="Auto" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="MinHeight" Value="12" />
+          </Trigger>
+        </Style.Triggers>
+      </Style>
+
+      <Style TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource PrimaryText}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ComboBoxItem">
+              <Grid Margin="3,1">
+                <Border x:Name="ItemChrome"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="4" />
+                <Border x:Name="HoverGlow"
+                        Background="#2A3446"
+                        CornerRadius="4"
+                        Opacity="0"
+                        IsHitTestVisible="False" />
+                <ContentPresenter Margin="{TemplateBinding Padding}" />
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                  <Trigger.EnterActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="{StaticResource HoverFadeIn}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.EnterActions>
+                  <Trigger.ExitActions>
+                    <BeginStoryboard>
+                      <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="HoverGlow"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="{StaticResource HoverFadeOut}" />
+                      </Storyboard>
+                    </BeginStoryboard>
+                  </Trigger.ExitActions>
+                </Trigger>
+                <!-- Selection is a state, not a passing highlight, so it lands at once. -->
+                <Trigger Property="IsSelected" Value="True">
+                  <Setter TargetName="ItemChrome" Property="Background" Value="{StaticResource AccentBrush}" />
+                  <Setter Property="FontWeight" Value="SemiBold" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

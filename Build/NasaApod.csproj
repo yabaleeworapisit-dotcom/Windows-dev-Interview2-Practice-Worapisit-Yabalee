@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="Common.props" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>NasaApodApp</RootNamespace>
+    <AssemblyName>NasaApod</AssemblyName>
+    <!-- The icon Explorer and the taskbar show for the executable. -->
+    <ApplicationIcon>..\src\Core\AppIcon.ico</ApplicationIcon>
+    <!-- WPF generates its own entry point from the application definition; default XAML
+         globbing is off because the source tree lives outside this Build\ folder. -->
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\src\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Include="..\src\Core\Core.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </ApplicationDefinition>
+    <Page Include="..\src\ui\views\**\*.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <!-- Also embedded, so the window can point its own Icon at it. ApplicationIcon alone
+         dresses the executable; the title bar reads Window.Icon. -->
+    <Resource Include="..\src\Core\AppIcon.ico" Link="AppIcon.ico" />
+  </ItemGroup>
+
+  <!-- The API key file is copied next to the executable so the running app can read it.
+       ApodApiConfig.json is git-ignored; the template is what ships in the repository. -->
+  <ItemGroup>
+    <None Include="..\src\config\ApodApiConfig.json"
+          Condition="Exists('..\src\config\ApodApiConfig.json')"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="ApodApiConfig.json" />
+    <None Include="..\src\config\ApodApiConfig.template.json"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="ApodApiConfig.template.json" />
+  </ItemGroup>
+
+</Project>

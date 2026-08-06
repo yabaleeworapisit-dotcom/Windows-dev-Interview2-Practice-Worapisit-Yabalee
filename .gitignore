@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+*.user
+
+# ApodApiConfig.json is published on purpose: the reviewer is meant to run this without
+# registering for a key of their own. The key it holds is a free NASA APOD key, rate limited
+# and revocable at api.nasa.gov, and it is the only thing in this repository that is a secret
+# at all. Re-add the line below to keep it private again.
+# src/config/ApodApiConfig.json
+
+# The exercise brief and the working notes kept beside it. The brief is Persec's document,
+# not ours to republish, and the notes describe how the work was done rather than what was
+# built. Delete this line to include them.
+ai/

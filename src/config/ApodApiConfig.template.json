@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy this file to ApodApiConfig.json and replace ApiKey with your own key from https://api.nasa.gov. DEMO_KEY works without signing up but is rate limited to 30 requests per hour.",
+  "ApiKey": "DEMO_KEY"
+}
