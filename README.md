@@ -106,7 +106,7 @@ project *is* rather than how it should be compiled:
 5. **Browse.** Choose a day in the list, or use `First` / `< Previous` / `Next >` / `Last`, or
    the arrow keys. **Show Detail** opens the panel on the right with every field the API
    returned; its values can be selected and copied.
-6. Video use case and Debug Log attached in TestResult folder. 
+6. Video use case and Debug Log attached in `TestResult` folder. 
 
 
 Hot keys
